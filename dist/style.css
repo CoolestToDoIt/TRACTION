@@ -1119,3 +1119,16 @@ footer b {
     padding: 12px 8px;
   }
 }
+
+.frame-profiler {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  background: #102017e6;
+  color: #e5ffc8;
+  font: 12px/1.5 monospace;
+  pointer-events: none;
+}

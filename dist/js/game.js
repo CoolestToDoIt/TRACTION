@@ -7,6 +7,8 @@ import {
   setTraction,
 } from "./engine.js";
 import { Renderer } from "./renderer.js";
+import { FrameProfiler } from "./frame-profiler.js";
+const frameProfiler = new FrameProfiler();
 import {
   assetUrl,
   readJson,
@@ -235,6 +237,7 @@ function hud() {
   minimap();
 }
 function frame(ms) {
+  const frameStart = frameProfiler.enabled ? performance.now() : 0;
   const dt = Math.min((ms - last) / 1000, 0.05) || 0.016;
   last = ms;
   if (state === "countdown") {
@@ -275,6 +278,7 @@ function frame(ms) {
       }
     }
   }
+  const simulationEnd = frameProfiler.enabled ? performance.now() : 0;
   $("game").dataset.state = state;
   if (["home", "garage", "maps", "loading"].includes(state)) {
     if (state === "garage") garageRenderer.renderGarage(previewCar, dt, orbit);
@@ -294,6 +298,12 @@ function frame(ms) {
       lastHudUpdate = ms;
     }
   }
+  if (frameProfiler.enabled)
+    frameProfiler.record(
+      ms,
+      simulationEnd - frameStart,
+      performance.now() - simulationEnd,
+    );
   requestAnimationFrame(frame);
 }
 window.addEventListener("keydown", (e) => {

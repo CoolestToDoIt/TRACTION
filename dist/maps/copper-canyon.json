@@ -82,5 +82,9 @@
     "ground": "#b39165",
     "road": "#39433f",
     "background": "../backgrounds/desert.png"
+  },
+  "terrainConfig": {
+    "cellSize": 24,
+    "padding": 260
   }
 }

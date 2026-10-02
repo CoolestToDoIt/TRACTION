@@ -2,6 +2,11 @@ import { wrap, nearest } from "./engine.js";
 import { assetUrl } from "./content.js";
 import { createScenery, drawStructure } from "./scenery.js";
 
+import { terrainHeight } from "./terrain.js";
+import { buildTerrainChunks } from "./terrain-mesh.js";
+import { ChaseCamera } from "./camera.js";
+import { RenderQuality } from "./render-quality.js";
+
 const panoramaCache = new Map();
 export class Renderer {
   constructor(canvas, track) {
@@ -23,6 +28,14 @@ export class Renderer {
       ? Array.from({ length: 4 }, (_, i) => this.makeFacade(i))
       : [];
     this.roadChunks = this.buildRoadGeometry();
+    const medium = this.buildRoadGeometry(2),
+      distant = this.buildRoadGeometry(4);
+    this.roadChunks.forEach((chunk, index) => {
+      chunk.levels = [chunk.faces, medium[index].faces, distant[index].faces];
+    });
+    this.terrainChunks = buildTerrainChunks(track);
+    this.chaseCamera = new ChaseCamera();
+    this.quality = new RenderQuality();
     this.staticStructures = this.scenery.map((structure) => {
       const builder = this.geometryBuilder();
       drawStructure(builder, structure);
@@ -65,7 +78,7 @@ export class Renderer {
     };
     return builder;
   }
-  buildRoadGeometry() {
+  buildRoadGeometry(stride = 1) {
     const builder = this.geometryBuilder();
     const vertexCache = new WeakMap();
     const pts = this.track.points,
@@ -74,9 +87,31 @@ export class Renderer {
     const chunks = [];
     for (const chunk of visibleChunks) {
       builder.faces = [];
-      for (let i = chunk.start; i < chunk.end; i++) {
+      for (let i = chunk.start; i < chunk.end;) {
+        // Keep the start checkerboard full-resolution at every level.
+        let step = i < 2 ? 1 : Math.min(stride, chunk.end - i);
+        // Refine sharp curves and crests even in a distant mesh.
+        while (step > 1) {
+          const start = pts[i],
+            end = pts[(i + step) % pts.length];
+          let error = 0;
+          for (let offset = 1; offset < step; offset++) {
+            const point = pts[(i + offset) % pts.length],
+              t = offset / step;
+            error = Math.max(
+              error,
+              Math.hypot(
+                point.x - start.x - (end.x - start.x) * t,
+                point.z - start.z - (end.z - start.z) * t,
+              ),
+              Math.abs(point.y - start.y - (end.y - start.y) * t) * 2,
+            );
+          }
+          if (error <= 0.15 * stride) break;
+          step = Math.floor(step / 2);
+        }
         const a = pts[i],
-          b = pts[(i + 1) % pts.length];
+          b = pts[(i + step) % pts.length];
         const v = (point, offset, elevation = 0) => {
           let vertices = vertexCache.get(point);
           if (!vertices) vertexCache.set(point, (vertices = new Map()));
@@ -100,6 +135,21 @@ export class Renderer {
               ],
               "#252b40",
             );
+        } else if (this.track.terrain) {
+          for (const side of [-1, 1]) {
+            const innerA = v(a, side * (half + 3), -0.08);
+            const innerB = v(b, side * (half + 3), -0.08);
+            const outerA = v(a, side * (half + 15));
+            const outerB = v(b, side * (half + 15));
+            outerA[1] = terrainHeight(this.track.terrain, outerA[0], outerA[2]);
+            outerB[1] = terrainHeight(this.track.terrain, outerB[0], outerB[2]);
+            const color =
+              this.track.environment?.terrainNear ||
+              this.track.environment?.ground ||
+              "#b39165";
+            builder.poly([innerA, innerB, outerA], color);
+            builder.poly([innerB, outerB, outerA], color);
+          }
         } else {
           for (const side of [-1, 1]) {
             builder.poly(
@@ -141,9 +191,12 @@ export class Renderer {
             { x: this.track.roadWidth * 8, y: a.s * 8 },
             {
               x: this.track.roadWidth * 8,
-              y: (i === pts.length - 1 ? this.track.length : b.s) * 8,
+              y: (i + step === pts.length ? this.track.length : b.s) * 8,
             },
-            { x: 0, y: (i === pts.length - 1 ? this.track.length : b.s) * 8 },
+            {
+              x: 0,
+              y: (i + step === pts.length ? this.track.length : b.s) * 8,
+            },
           ],
         );
         if (road) road.repeat = true;
@@ -234,11 +287,24 @@ export class Renderer {
               "#f8f2d4",
             );
         }
+        i += step;
       }
-      const margin = half + (this.track.terrainWidth || 95);
+      const margin =
+        half + (this.track.terrain ? 15 : this.track.terrainWidth || 95);
       chunks.push({
         ...chunk,
         radius: chunk.radius + margin,
+        roadRadius: chunk.radius,
+        minY: Math.min(
+          ...builder.faces.flatMap((face) =>
+            face.points.map((point) => point[1]),
+          ),
+        ),
+        maxY: Math.max(
+          ...builder.faces.flatMap((face) =>
+            face.points.map((point) => point[1]),
+          ),
+        ),
         faces: builder.faces,
       });
     }
@@ -250,8 +316,9 @@ export class Renderer {
     this.pitchCosine = Math.cos(this.pitch ?? 0.19);
     this.pitchSine = Math.sin(this.pitch ?? 0.19);
     this.projectedVertices = new WeakMap();
+    this.groundOcclusion = new WeakMap();
   }
-  visibleRegion(x, z, radius, distance) {
+  visibleRegion(x, z, radius, distance, minY = this.cam.y, maxY = this.cam.y) {
     const dx = x - this.cam.x,
       dz = z - this.cam.z;
     if (dx * dx + dz * dz > (distance + radius) ** 2) return false;
@@ -259,13 +326,50 @@ export class Renderer {
     const forward = dx * this.cameraSine + dz * this.cameraCosine;
     // Conservative horizontal frustum; never trim crests using road height.
     const slope = this.w / (2 * this.f);
+    const vertical = Math.max(
+      Math.abs(minY - this.cam.y),
+      Math.abs(maxY - this.cam.y),
+    );
+    radius += vertical * Math.abs(this.pitchSine) * (1 + slope);
     return (
       forward + radius > 0 &&
       Math.abs(across) <= Math.max(0, forward) * slope + radius * (1 + slope)
     );
   }
-  drawGeometry(faces) {
+  hiddenByGround(point) {
+    if (!this.track.terrain) return false;
+    if (this.groundOcclusion.has(point)) return this.groundOcclusion.get(point);
+    const dx = point[0] - this.cam.x,
+      dz = point[2] - this.cam.z;
+    const distance = Math.hypot(dx, dz);
+    let hidden = false;
+    // Conservative distant occlusion. Keep nearby geometry and allow a safety margin.
+    if (distance > 100) {
+      const step = this.track.terrain.cellSize;
+      for (let along = step; along < distance - step; along += step) {
+        const fraction = along / distance;
+        const rayHeight = this.cam.y + (point[1] - this.cam.y) * fraction;
+        const ground = terrainHeight(
+          this.track.terrain,
+          this.cam.x + dx * fraction,
+          this.cam.z + dz * fraction,
+        );
+        if (ground > rayHeight + 3) {
+          hidden = true;
+          break;
+        }
+      }
+    }
+    this.groundOcclusion.set(point, hidden);
+    return hidden;
+  }
+  drawGeometry(faces, checkGround = false) {
     for (const cached of faces) {
+      if (
+        checkGround &&
+        cached.points.every((point) => this.hiddenByGround(point))
+      )
+        continue;
       const face = this.poly(
         cached.points,
         cached.color,
@@ -303,7 +407,7 @@ export class Renderer {
   }
   resize() {
     const r = this.canvas.getBoundingClientRect(),
-      d = Math.min(devicePixelRatio || 1, 1.6);
+      d = this.quality.ratio(r.width, r.height, devicePixelRatio);
     if (
       this.canvas.width !== Math.round(r.width * d) ||
       this.canvas.height !== Math.round(r.height * d)
@@ -523,6 +627,7 @@ export class Renderer {
   }
   render(session, dt, menu = false, lookBack = false) {
     this.screenCenter = 0.43;
+    this.quality.update(dt);
     this.resize();
     const c = session.cars[0];
     const target = menu ? c.angle - 0.28 : c.angle - c.slip * 0.7;
@@ -533,21 +638,16 @@ export class Renderer {
     const speed = Math.hypot(c.vx, c.vz);
     const boost = menu ? 0 : Math.min(speed / 74, 1);
     this.f = this.w * (0.77 - 0.07 * boost);
-    this.pitch =
-      (menu ? 0.19 : 0.12) - (c.pitch || 0) * 0.7 * (lookBack ? -1 : 1);
-    const back = menu ? 18 : 10.5;
-    this.cam = {
-      x: c.x - Math.sin(this.yaw) * back + (menu ? 9 : 0),
-      z: c.z - Math.cos(this.yaw) * back,
-      y:
-        (menu
-          ? c.y || 0
-          : nearest(
-              this.track,
-              c.x - Math.sin(this.yaw) * back,
-              c.z - Math.cos(this.yaw) * back,
-            ).height) + (menu ? 9 : 3.8),
-    };
+    const camera = this.chaseCamera.update(
+      this.track,
+      c,
+      this.yaw,
+      dt,
+      menu,
+      lookBack,
+    );
+    this.cam = camera.position;
+    this.pitch = camera.pitch;
     this.prepareCamera();
     const ctx = this.ctx;
     const gradient = ctx.createLinearGradient(0, 0, 0, this.h);
@@ -561,20 +661,69 @@ export class Renderer {
     ctx.fillRect(0, horizon, this.w, this.h - horizon);
     this.drawPanorama(horizon);
     this.faces = [];
+    // Ground gets its own pass; the road/apron cannot be buried by a coarse distant cell.
+    for (const chunk of this.terrainChunks) {
+      if (
+        !this.visibleRegion(
+          chunk.x,
+          chunk.z,
+          chunk.radius,
+          this.viewDistance,
+          chunk.minY,
+          chunk.maxY,
+        )
+      )
+        continue;
+      const distance = Math.hypot(chunk.x - c.x, chunk.z - c.z) - chunk.radius;
+      const level = distance < 100 ? 0 : distance < 260 ? 1 : 2;
+      this.drawGeometry(chunk.levels[level]);
+    }
+    const terrainFaces = this.faces;
+    this.drawFaces(ctx, terrainFaces);
+    this.faces = [];
+    // Buildings and props remain in the world pass with the road and other cars.
     for (const building of this.staticBuildings) {
-      if (this.visibleRegion(building.x, building.z, building.radius, 360))
-        this.drawGeometry(building.faces);
+      if (
+        this.visibleRegion(
+          building.x,
+          building.z,
+          building.radius,
+          360,
+          0,
+          building.height,
+        )
+      )
+        this.drawGeometry(building.faces, true);
     }
     for (const structure of this.staticStructures) {
-      if (this.visibleRegion(structure.x, structure.z, structure.radius, 280))
-        this.drawGeometry(structure.faces);
+      if (
+        this.visibleRegion(
+          structure.x,
+          structure.z,
+          structure.radius,
+          280,
+          structure.y,
+          structure.y + structure.height,
+        )
+      )
+        this.drawGeometry(structure.faces, true);
     }
     for (const chunk of this.roadChunks) {
       if (
-        !this.visibleRegion(chunk.x, chunk.z, chunk.radius, this.viewDistance)
+        !this.visibleRegion(
+          chunk.x,
+          chunk.z,
+          chunk.radius,
+          this.viewDistance,
+          chunk.minY,
+          chunk.maxY,
+        )
       )
         continue;
-      this.drawGeometry(chunk.faces);
+      const distance =
+        Math.hypot(chunk.x - c.x, chunk.z - c.z) - chunk.roadRadius;
+      const level = distance < 90 ? 0 : distance < 220 ? 1 : 2;
+      this.drawGeometry(chunk.levels[level], true);
     }
     const pts = this.track.points,
       half = this.track.roadWidth / 2;
@@ -718,29 +867,47 @@ export class Renderer {
     const previous = this.ctx;
     this.ctx = ctx;
     faces.sort((a, b) => b.depth - a.depth);
-    for (const face of faces) {
+    for (let index = 0; index < faces.length;) {
+      const face = faces[index];
       if (face.sprite) {
         ctx.save();
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(face.image, face.left, face.top, face.width, face.height);
         ctx.restore();
+        index++;
         continue;
       }
       ctx.fillStyle = face.color;
       ctx.beginPath();
-      face.ps.forEach((p, i) =>
-        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
-      );
-      ctx.closePath();
+      const textured =
+        face.texture &&
+        (!face.repeat || face.ps.some((point) => point.depth < 85));
+      const opaque = /^#[0-9a-f]{6}$/i.test(face.color);
+      let end = index + 1;
+      if (!textured && opaque) {
+        while (
+          end < faces.length &&
+          end - index < 128 &&
+          !faces[end].sprite &&
+          !faces[end].texture &&
+          faces[end].color === face.color
+        )
+          end++;
+      }
+      for (let cursor = index; cursor < end; cursor++) {
+        const points = faces[cursor].ps;
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let vertex = 1; vertex < points.length; vertex++)
+          ctx.lineTo(points[vertex].x, points[vertex].y);
+        ctx.closePath();
+      }
       ctx.fill();
       ctx.strokeStyle = face.color;
       ctx.lineWidth = 0.65;
       ctx.stroke();
-      if (
-        face.texture &&
-        (!face.repeat || face.ps.some((point) => point.depth < 110))
-      )
+      if (textured)
         this.paintTexture(face.ps, face.texture, face.uv, face.repeat);
+      index = end;
     }
     this.ctx = previous;
   }

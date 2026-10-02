@@ -1,4 +1,5 @@
 import { nearest } from "./engine.js";
+import { surfaceHeight } from "./terrain.js";
 
 // Dimensions are meters. Only the built-in circuits receive themed scenery.
 const THEMES = {
@@ -117,7 +118,7 @@ export function createScenery(track) {
     structures.push({
       ...variant,
       x,
-      y: road.height - 0.3,
+      y: surfaceHeight(track, x, z, road) - 0.3,
       z,
       angle: point.angle + (random() - 0.5) * 0.6,
     });

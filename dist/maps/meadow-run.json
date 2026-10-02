@@ -82,5 +82,9 @@
     "mountainLight": "#759d6c",
     "mountainDark": "#5d8259",
     "background": "../backgrounds/grassland.png"
+  },
+  "terrainConfig": {
+    "cellSize": 24,
+    "padding": 260
   }
 }

@@ -13,6 +13,22 @@ assert(
     Math.min(...track.points.map((p) => p.y)) >
     200,
 );
+const gradeJumps = track.points.map((point, index) =>
+  Math.abs(point.grade - track.points[(index + 1) % track.points.length].grade),
+);
+const headingJumps = track.points.map((point, index) =>
+  Math.abs(
+    wrap(point.angle - track.points[(index + 1) % track.points.length].angle),
+  ),
+);
+assert.ok(
+  Math.max(...gradeJumps) < 0.06,
+  "Elevation transitions should not have abrupt grade changes",
+);
+assert.ok(
+  Math.max(...headingJumps) < 0.15,
+  "Hairpins should turn smoothly between samples",
+);
 const initial = track.points.filter((p) => p.s < 400);
 assert(
   Math.max(

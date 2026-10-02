@@ -34,3 +34,7 @@ Run `python3 -m http.server 8000 --directory dist` from the project folder. Open
 For GitHub Pages: upload all extracted source files (including `.github/workflows/pages.yml`) to a repository on its `main` branch. In **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions**. Run the included workflow manually from Actions for the first deployment if needed. It publishes `dist` without a build. Use a public repository for GitHub Free. If your default branch has another name, update the workflow branch. Assets work both at a domain root and under `/repository-name/`.
 
 GitHub Pages serves the single-player game and its static content. Future multiplayer would need a separate service for its game server.
+
+## Optional terrain and smoother interpolation
+
+A track may set `"interpolation": "centripetal"` to use centripetal horizontal curves and shape-preserving elevation curves. Omitting it retains legacy uniform curves. Rural tracks may set `"terrainConfig": { "cellSize": 24, "padding": 260 }` to generate continuous terrain and use that ground for off-road driving. Cell size is clamped to 16–48 meters and padding to 120–400 meters. Terrain generation rejects more than 180,000 height samples. City maps retain their street/sidewalk geometry. Cars leaving generated ground bounds recover to the road without changing checkpoint/lap state. Generated terrain does not implement airborne physics.

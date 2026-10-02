@@ -1,3 +1,6 @@
+import { sampleCentripetal, sampleElevation } from "./track-curves.js";
+import { buildTerrain, surfaceHeight, insideTerrain } from "./terrain.js";
+
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const TRACTION_OFF_SPEED_FACTOR = 0.85;
 export const speedLimit = (car) =>
@@ -30,8 +33,10 @@ export function buildTrack(data) {
     throw Error("Unsupported track file");
   const points = [],
     n = data.points.length;
+  const curveSpans = [];
   const control = data.points.map((p) => [p[0], p[1], p[2] ?? 0]);
   for (let i = 0; i < n; i++) {
+    const spanStart = points.length;
     const samples = Math.max(
       12,
       Math.ceil(
@@ -55,8 +60,46 @@ export function buildTrack(data) {
           (-a[k] + c[k]) * t +
           (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t * t +
           (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * t * t * t);
-      points.push({ x: s(0), z: s(1), y: s(2) });
+      if (data.interpolation === "centripetal") {
+        const curve = sampleCentripetal(control, i, t);
+        points.push({
+          x: curve[0],
+          z: curve[1],
+          y: control[i][2],
+        });
+      } else points.push({ x: s(0), z: s(1), y: s(2) });
     }
+    if (data.interpolation === "centripetal") {
+      let horizontalLength = 0;
+      for (let index = spanStart; index < points.length; index++) {
+        const point = points[index];
+        point.curveDistance = horizontalLength;
+        const next = points[index + 1] || {
+          x: control[(i + 1) % n][0],
+          z: control[(i + 1) % n][1],
+        };
+        horizontalLength += Math.hypot(next.x - point.x, next.z - point.z);
+      }
+      curveSpans.push({
+        start: spanStart,
+        end: points.length,
+        length: Math.max(horizontalLength, 0.001),
+      });
+    }
+  }
+  if (curveSpans.length) {
+    const spanLengths = curveSpans.map((span) => span.length);
+    curveSpans.forEach((span, index) => {
+      for (let i = span.start; i < span.end; i++) {
+        points[i].y = sampleElevation(
+          control,
+          index,
+          points[i].curveDistance / span.length,
+          spanLengths,
+        );
+        delete points[i].curveDistance;
+      }
+    });
   }
   let length = 0;
   const grid = new Map();
@@ -82,7 +125,9 @@ export function buildTrack(data) {
       radius = Math.max(...list.map((p) => Math.hypot(p.x - x, p.z - z))) + 5;
     chunks.push({ start, end, x, z, radius });
   }
-  return { ...data, points, length, grid, chunks };
+  const track = { ...data, points, length, grid, chunks };
+  track.terrain = buildTerrain(track, nearest);
+  return track;
 }
 export function nearest(track, x, z) {
   let candidates = [];
@@ -108,6 +153,8 @@ export function nearest(track, x, z) {
     point: track.points[index],
     height: track.points[index].y,
     grade: track.points[index].grade,
+    x: track.points[index].x,
+    z: track.points[index].z,
   };
   for (const i of [
     (index - 1 + track.points.length) % track.points.length,
@@ -126,6 +173,8 @@ export function nearest(track, x, z) {
         point: track.points[index],
         height: a.y + (b.y - a.y) * t,
         grade: a.grade,
+        x: a.x + dx * t,
+        z: a.z + dz * t,
       };
     }
   }
@@ -284,9 +333,29 @@ export function stepCar(car, input, track, dt) {
   }
   car.slip = Math.atan2(lateral, Math.max(Math.abs(forward), 1));
   const surface = nearest(track, car.x, car.z);
-  car.y = surface.height;
-  car.pitch +=
-    (Math.atan(surface.grade) - car.pitch) * (1 - Math.exp(-10 * dt));
+  if (track.terrain && !insideTerrain(track.terrain, car.x, car.z, 8)) {
+    // Recovery preserves lap/checkpoint state; driving beyond the ground earns no progress.
+    resetCar(car, track);
+    return nearest(track, car.x, car.z);
+  }
+  car.y = surfaceHeight(track, car.x, car.z, surface);
+  let groundGrade = surface.grade;
+  if (track.terrain && surface.distance > track.roadWidth / 2 + 3) {
+    const aheadX = car.x + Math.sin(car.angle) * 2,
+      aheadZ = car.z + Math.cos(car.angle) * 2;
+    const behindX = car.x - Math.sin(car.angle) * 2,
+      behindZ = car.z - Math.cos(car.angle) * 2;
+    groundGrade =
+      (surfaceHeight(track, aheadX, aheadZ, nearest(track, aheadX, aheadZ)) -
+        surfaceHeight(
+          track,
+          behindX,
+          behindZ,
+          nearest(track, behindX, behindZ),
+        )) /
+      4;
+  }
+  car.pitch += (Math.atan(groundGrade) - car.pitch) * (1 - Math.exp(-10 * dt));
   car.index = surface.index;
   const bend = trackBend(track, surface.index),
     driftAngle = Math.abs(car.slip);
