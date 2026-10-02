@@ -22,6 +22,25 @@ export class Renderer {
     this.facades = this.night
       ? Array.from({ length: 4 }, (_, i) => this.makeFacade(i))
       : [];
+    this.roadChunks = this.buildRoadGeometry();
+    this.staticStructures = this.scenery.map((structure) => {
+      const builder = this.geometryBuilder();
+      drawStructure(builder, structure);
+      return {
+        ...structure,
+        radius: Math.hypot(structure.width, structure.depth) / 2,
+        faces: builder.faces,
+      };
+    });
+    this.staticBuildings = (track.buildings || []).map((building) => {
+      const builder = this.geometryBuilder();
+      builder.building(building);
+      return {
+        ...building,
+        radius: Math.hypot(building.width, building.depth) / 2,
+        faces: builder.faces,
+      };
+    });
     this.heading = this.yaw;
     this.background = null;
     const panorama = track.environment?.background;
@@ -33,6 +52,227 @@ export class Renderer {
         panoramaCache.set(url, image);
       }
       this.background = panoramaCache.get(url);
+    }
+  }
+  // Static world coordinates are built once. Simulation still uses full-resolution elevations.
+  geometryBuilder() {
+    const builder = Object.create(this);
+    builder.faces = [];
+    builder.poly = (points, color, texture = null, uv = null) => {
+      const face = { points, color, texture, uv };
+      builder.faces.push(face);
+      return face;
+    };
+    return builder;
+  }
+  buildRoadGeometry() {
+    const builder = this.geometryBuilder();
+    const vertexCache = new WeakMap();
+    const pts = this.track.points,
+      half = this.track.roadWidth / 2;
+    const visibleChunks = this.track.chunks;
+    const chunks = [];
+    for (const chunk of visibleChunks) {
+      builder.faces = [];
+      for (let i = chunk.start; i < chunk.end; i++) {
+        const a = pts[i],
+          b = pts[(i + 1) % pts.length];
+        const v = (point, offset, elevation = 0) => {
+          let vertices = vertexCache.get(point);
+          if (!vertices) vertexCache.set(point, (vertices = new Map()));
+          const key = `${offset},${elevation}`;
+          if (!vertices.has(key))
+            vertices.set(key, [
+              point.x + point.nx * offset,
+              point.y + elevation,
+              point.z + point.nz * offset,
+            ]);
+          return vertices.get(key);
+        };
+        if (this.night) {
+          for (const side of [-1, 1])
+            builder.poly(
+              [
+                v(a, side * (half + 3), -0.09),
+                v(b, side * (half + 3), -0.09),
+                v(b, side * (half + 22), -0.15),
+                v(a, side * (half + 22), -0.15),
+              ],
+              "#252b40",
+            );
+        } else {
+          for (const side of [-1, 1]) {
+            builder.poly(
+              [
+                v(a, side * (half + 3), -0.09),
+                v(b, side * (half + 3), -0.09),
+                v(b, side * (half + (this.track.terrainWidth || 42)), -7),
+                v(a, side * (half + (this.track.terrainWidth || 42)), -7),
+              ],
+              this.track.environment?.terrainNear ||
+                (side === 1 ? "#b99a70" : "#b39165"),
+            );
+            builder.poly(
+              [
+                v(a, side * (half + (this.track.terrainWidth || 42)), -7),
+                v(b, side * (half + (this.track.terrainWidth || 42)), -7),
+                v(b, side * (half + (this.track.terrainWidth ? 50 : 95)), -25),
+                v(a, side * (half + (this.track.terrainWidth ? 50 : 95)), -25),
+              ],
+              this.track.environment?.terrainFar || "#ae8f63",
+            );
+          }
+        }
+        builder.poly(
+          [
+            v(a, -half - 3, -0.08),
+            v(a, half + 3, -0.08),
+            v(b, half + 3, -0.08),
+            v(b, -half - 3, -0.08),
+          ],
+          this.track.environment?.shoulder || "#c4aa7f",
+        );
+        const road = builder.poly(
+          [v(a, -half), v(a, half), v(b, half), v(b, -half)],
+          this.track.environment?.road || "#3d4742",
+          this.asphalt,
+          [
+            { x: 0, y: a.s * 8 },
+            { x: this.track.roadWidth * 8, y: a.s * 8 },
+            {
+              x: this.track.roadWidth * 8,
+              y: (i === pts.length - 1 ? this.track.length : b.s) * 8,
+            },
+            { x: 0, y: (i === pts.length - 1 ? this.track.length : b.s) * 8 },
+          ],
+        );
+        if (road) road.repeat = true;
+        for (const side of [-1, 1]) {
+          builder.poly(
+            [
+              v(a, side * (half - 0.15), 0.04),
+              v(a, side * (half + 0.65), 0.04),
+              v(b, side * (half + 0.65), 0.04),
+              v(b, side * (half - 0.15), 0.04),
+            ],
+            Math.floor(i / 2) % 2
+              ? this.night
+                ? "#afbdd0"
+                : "#eee7ca"
+              : this.track.environment?.curb || "#d77852",
+          );
+          builder.poly(
+            [
+              v(a, side * (half - 1.1), 0.05),
+              v(a, side * (half - 0.94), 0.05),
+              v(b, side * (half - 0.94), 0.05),
+              v(b, side * (half - 1.1), 0.05),
+            ],
+            this.track.environment?.lane || "#e7dfc5",
+          );
+        }
+        if (i % 8 < 3)
+          builder.poly(
+            [
+              v(a, -0.12, 0.03),
+              v(a, 0.12, 0.03),
+              v(b, 0.12, 0.03),
+              v(b, -0.12, 0.03),
+            ],
+            this.track.environment?.lane || "#d7d6bf",
+          );
+        if (i === 0 || i === 1) {
+          for (let j = 0; j < Math.ceil(this.track.roadWidth / 2); j++)
+            builder.poly(
+              [
+                v(a, Math.min(half, -half + j * 2), 0.07),
+                v(a, Math.min(half, -half + (j + 1) * 2), 0.07),
+                v(b, Math.min(half, -half + (j + 1) * 2), 0.07),
+                v(b, Math.min(half, -half + j * 2), 0.07),
+              ],
+              (i + j) % 2 ? "#eef0de" : "#202c27",
+            );
+        }
+        if (this.night && i % 24 === 0) {
+          for (const side of [-1, 1]) {
+            const x = a.x + a.nx * (half + 2.5) * side,
+              z = a.z + a.nz * (half + 2.5) * side;
+            builder.box(x, a.y, z, 0.14, 7, 0.14, a.angle, "#3b425a");
+            builder.box(
+              x,
+              a.y + 6.8,
+              z,
+              1.3,
+              0.16,
+              0.6,
+              a.angle,
+              "#e9d7ac",
+              "#f9e0b0",
+            );
+            builder.poly(
+              [
+                v(a, side * (half - 5), 0.075),
+                v(a, side * (half + 1), 0.075),
+                v(b, side * (half + 1), 0.075),
+                v(b, side * (half - 5), 0.075),
+              ],
+              "#f5d7a81c",
+            );
+          }
+        }
+        if (i % 16 === 0) {
+          for (const side of [-1, 1])
+            builder.box(
+              a.x + a.nx * (half + 1.5) * side,
+              a.y,
+              a.z + a.nz * (half + 1.5) * side,
+              0.2,
+              1.4,
+              0.2,
+              a.angle,
+              "#d8d8b4",
+              "#f8f2d4",
+            );
+        }
+      }
+      const margin = half + (this.track.terrainWidth || 95);
+      chunks.push({
+        ...chunk,
+        radius: chunk.radius + margin,
+        faces: builder.faces,
+      });
+    }
+    return chunks;
+  }
+  prepareCamera() {
+    this.cameraCosine = Math.cos(this.yaw);
+    this.cameraSine = Math.sin(this.yaw);
+    this.pitchCosine = Math.cos(this.pitch ?? 0.19);
+    this.pitchSine = Math.sin(this.pitch ?? 0.19);
+    this.projectedVertices = new WeakMap();
+  }
+  visibleRegion(x, z, radius, distance) {
+    const dx = x - this.cam.x,
+      dz = z - this.cam.z;
+    if (dx * dx + dz * dz > (distance + radius) ** 2) return false;
+    const across = dx * this.cameraCosine - dz * this.cameraSine;
+    const forward = dx * this.cameraSine + dz * this.cameraCosine;
+    // Conservative horizontal frustum; never trim crests using road height.
+    const slope = this.w / (2 * this.f);
+    return (
+      forward + radius > 0 &&
+      Math.abs(across) <= Math.max(0, forward) * slope + radius * (1 + slope)
+    );
+  }
+  drawGeometry(faces) {
+    for (const cached of faces) {
+      const face = this.poly(
+        cached.points,
+        cached.color,
+        cached.texture,
+        cached.uv,
+      );
+      if (face) face.repeat = cached.repeat;
     }
   }
   drawPanorama(horizon) {
@@ -78,16 +318,15 @@ export class Renderer {
   cameraPoint(x, y, z) {
     const dx = x - this.cam.x,
       dz = z - this.cam.z,
-      cy = Math.cos(this.yaw),
-      sy = Math.sin(this.yaw),
+      cy = this.cameraCosine,
+      sy = this.cameraSine,
       cx = dx * cy - dz * sy,
       cz = dx * sy + dz * cy,
       dy = y - this.cam.y;
-    const pitch = this.pitch ?? 0.19;
     return {
       x: cx,
-      y: dy * Math.cos(pitch) + cz * Math.sin(pitch),
-      depth: cz * Math.cos(pitch) - dy * Math.sin(pitch),
+      y: dy * this.pitchCosine + cz * this.pitchSine,
+      depth: cz * this.pitchCosine - dy * this.pitchSine,
     };
   }
   project(x, y, z) {
@@ -103,8 +342,33 @@ export class Renderer {
   }
   // Clip against the camera near plane instead of dropping an entire polygon.
   poly(points, color, texture = null, uv = null) {
-    let vertices = points.map((p, i) => ({
-      ...this.cameraPoint(...p),
+    const cameraVertices = points.map((point) => {
+      let projected = this.projectedVertices.get(point);
+      if (!projected) {
+        projected = this.cameraPoint(...point);
+        this.projectedVertices.set(point, projected);
+      }
+      return projected;
+    });
+    if (cameraVertices.every((point) => point.depth < 0.7)) return;
+    if (cameraVertices.every((point) => point.depth >= 0.7)) {
+      const ps = cameraVertices.map((point) => this.screenPoint(point));
+      if (this.outsideScreen(ps)) return;
+      const face = {
+        ps,
+        color,
+        texture,
+        uv,
+        depth:
+          cameraVertices.reduce((sum, point) => sum + point.depth, 0) /
+          points.length,
+      };
+      this.faces.push(face);
+      return face;
+    }
+    // Only near-plane crossings need new UV values and polygon clipping.
+    const vertices = cameraVertices.map((point, i) => ({
+      ...point,
       u: uv?.[i]?.x ?? 0,
       v: uv?.[i]?.y ?? 0,
     }));
@@ -128,6 +392,7 @@ export class Renderer {
     }
     if (clipped.length < 3) return;
     const ps = clipped.map((p) => this.screenPoint(p));
+    if (this.outsideScreen(ps)) return;
     const face = {
       ps,
       color,
@@ -137,6 +402,14 @@ export class Renderer {
     };
     this.faces.push(face);
     return face;
+  }
+  outsideScreen(points) {
+    return (
+      points.every((point) => point.x < -2) ||
+      points.every((point) => point.x > this.w + 2) ||
+      points.every((point) => point.y < -2) ||
+      points.every((point) => point.y > this.h + 2)
+    );
   }
   makeAsphalt() {
     const tile = document.createElement("canvas");
@@ -275,6 +548,7 @@ export class Renderer {
               c.z - Math.cos(this.yaw) * back,
             ).height) + (menu ? 9 : 3.8),
     };
+    this.prepareCamera();
     const ctx = this.ctx;
     const gradient = ctx.createLinearGradient(0, 0, 0, this.h);
     gradient.addColorStop(0, this.track.environment?.sky || "#aac5bd");
@@ -287,213 +561,58 @@ export class Renderer {
     ctx.fillRect(0, horizon, this.w, this.h - horizon);
     this.drawPanorama(horizon);
     this.faces = [];
-    if (this.night) {
-      for (const building of this.track.buildings || [])
-        if (
-          Math.hypot(building.x - c.x, building.z - c.z) <
-          360 + Math.hypot(building.width, building.depth) / 2
-        )
-          this.building(building);
+    for (const building of this.staticBuildings) {
+      if (this.visibleRegion(building.x, building.z, building.radius, 360))
+        this.drawGeometry(building.faces);
     }
-    // Nearby props share road and CPU-car depth sorting, including look-back.
-    for (const structure of this.scenery) {
+    for (const structure of this.staticStructures) {
+      if (this.visibleRegion(structure.x, structure.z, structure.radius, 280))
+        this.drawGeometry(structure.faces);
+    }
+    for (const chunk of this.roadChunks) {
       if (
-        Math.hypot(structure.x - c.x, structure.z - c.z) < this.viewDistance
-      ) {
-        drawStructure(this, structure);
-      }
+        !this.visibleRegion(chunk.x, chunk.z, chunk.radius, this.viewDistance)
+      )
+        continue;
+      this.drawGeometry(chunk.faces);
     }
     const pts = this.track.points,
       half = this.track.roadWidth / 2;
-    const visibleChunks = this.track.chunks.filter(
-      (chunk) =>
-        Math.hypot(chunk.x - c.x, chunk.z - c.z) <
-        this.viewDistance + chunk.radius,
-    );
-    for (const chunk of visibleChunks)
-      for (let i = chunk.start; i < chunk.end; i++) {
-        const a = pts[i],
-          b = pts[(i + 1) % pts.length];
-        if (Math.hypot(a.x - c.x, a.z - c.z) > this.viewDistance + 24) continue;
-        const v = (p, offset, y = 0) => [
-          p.x + p.nx * offset,
-          p.y + y,
-          p.z + p.nz * offset,
-        ];
-        if (this.night) {
-          for (const side of [-1, 1])
-            this.poly(
-              [
-                v(a, side * (half + 3), -0.09),
-                v(b, side * (half + 3), -0.09),
-                v(b, side * (half + 22), -0.15),
-                v(a, side * (half + 22), -0.15),
-              ],
-              "#252b40",
-            );
-        } else {
-          for (const side of [-1, 1]) {
-            this.poly(
-              [
-                v(a, side * (half + 3), -0.09),
-                v(b, side * (half + 3), -0.09),
-                v(b, side * (half + (this.track.terrainWidth || 42)), -7),
-                v(a, side * (half + (this.track.terrainWidth || 42)), -7),
-              ],
-              this.track.environment?.terrainNear ||
-                (side === 1 ? "#b99a70" : "#b39165"),
-            );
-            this.poly(
-              [
-                v(a, side * (half + (this.track.terrainWidth || 42)), -7),
-                v(b, side * (half + (this.track.terrainWidth || 42)), -7),
-                v(b, side * (half + (this.track.terrainWidth ? 50 : 95)), -25),
-                v(a, side * (half + (this.track.terrainWidth ? 50 : 95)), -25),
-              ],
-              this.track.environment?.terrainFar || "#ae8f63",
-            );
-          }
-        }
-        this.poly(
-          [
-            v(a, -half - 3, -0.08),
-            v(a, half + 3, -0.08),
-            v(b, half + 3, -0.08),
-            v(b, -half - 3, -0.08),
-          ],
-          this.track.environment?.shoulder || "#c4aa7f",
-        );
-        const road = this.poly(
-          [v(a, -half), v(a, half), v(b, half), v(b, -half)],
-          this.track.environment?.road || "#3d4742",
-          this.asphalt,
-          [
-            { x: 0, y: a.s * 8 },
-            { x: this.track.roadWidth * 8, y: a.s * 8 },
-            {
-              x: this.track.roadWidth * 8,
-              y: (i === pts.length - 1 ? this.track.length : b.s) * 8,
-            },
-            { x: 0, y: (i === pts.length - 1 ? this.track.length : b.s) * 8 },
-          ],
-        );
-        if (road) road.repeat = true;
-        for (const side of [-1, 1]) {
-          this.poly(
-            [
-              v(a, side * (half - 0.15), 0.04),
-              v(a, side * (half + 0.65), 0.04),
-              v(b, side * (half + 0.65), 0.04),
-              v(b, side * (half - 0.15), 0.04),
-            ],
-            Math.floor(i / 2) % 2
-              ? this.night
-                ? "#afbdd0"
-                : "#eee7ca"
-              : this.track.environment?.curb || "#d77852",
-          );
-          this.poly(
-            [
-              v(a, side * (half - 1.1), 0.05),
-              v(a, side * (half - 0.94), 0.05),
-              v(b, side * (half - 0.94), 0.05),
-              v(b, side * (half - 1.1), 0.05),
-            ],
-            this.track.environment?.lane || "#e7dfc5",
-          );
-        }
-        if (i % 8 < 3)
-          this.poly(
-            [
-              v(a, -0.12, 0.03),
-              v(a, 0.12, 0.03),
-              v(b, 0.12, 0.03),
-              v(b, -0.12, 0.03),
-            ],
-            this.track.environment?.lane || "#d7d6bf",
-          );
-        if (i === 0 || i === 1) {
-          for (let j = 0; j < Math.ceil(this.track.roadWidth / 2); j++)
-            this.poly(
-              [
-                v(a, Math.min(half, -half + j * 2), 0.07),
-                v(a, Math.min(half, -half + (j + 1) * 2), 0.07),
-                v(b, Math.min(half, -half + (j + 1) * 2), 0.07),
-                v(b, Math.min(half, -half + j * 2), 0.07),
-              ],
-              (i + j) % 2 ? "#eef0de" : "#202c27",
-            );
-        }
-        if (this.night && i % 24 === 0) {
-          for (const side of [-1, 1]) {
-            const x = a.x + a.nx * (half + 2.5) * side,
-              z = a.z + a.nz * (half + 2.5) * side;
-            this.box(x, a.y, z, 0.14, 7, 0.14, a.angle, "#3b425a");
-            this.box(
-              x,
-              a.y + 6.8,
-              z,
-              1.3,
-              0.16,
-              0.6,
-              a.angle,
-              "#e9d7ac",
-              "#f9e0b0",
-            );
-            this.poly(
-              [
-                v(a, side * (half - 5), 0.075),
-                v(a, side * (half + 1), 0.075),
-                v(b, side * (half + 1), 0.075),
-                v(b, side * (half - 5), 0.075),
-              ],
-              "#f5d7a81c",
-            );
-          }
-        }
-        if (i % 16 === 0) {
-          for (const side of [-1, 1])
-            this.box(
-              a.x + a.nx * (half + 1.5) * side,
-              a.y,
-              a.z + a.nz * (half + 1.5) * side,
-              0.2,
-              1.4,
-              0.2,
-              a.angle,
-              "#d8d8b4",
-              "#f8f2d4",
-            );
-        }
-      }
-    for (const m of this.marks) this.poly(m.points, "#242b25");
-    if (Math.abs(c.slip) > 0.12 && Math.hypot(c.vx, c.vz) > 10 && !menu) {
+    for (const mark of this.marks) {
+      if (this.visibleRegion(mark.x, mark.z, 8, 180))
+        this.poly(mark.points, "#242b25");
+    }
+    this.markElapsed = (this.markElapsed || 0) + dt;
+    if (
+      Math.abs(c.slip) > 0.12 &&
+      speed > 10 &&
+      !menu &&
+      this.markElapsed >= 1 / 30
+    ) {
+      const elapsed = Math.min(this.markElapsed, 0.05);
+      this.markElapsed = 0;
+      const sine = Math.sin(c.angle),
+        cosine = Math.cos(c.angle);
       for (const side of [-1, 1]) {
-        const sn = Math.sin(c.angle),
-          cs = Math.cos(c.angle);
-        const x = c.x + cs * side * 0.85 - sn * 1.6,
-          z = c.z - sn * side * 0.85 - cs * 1.6;
+        const x = c.x + cosine * side * 0.85 - sine * 1.6;
+        const z = c.z - sine * side * 0.85 - cosine * 1.6;
+        const previousX = x - c.vx * elapsed,
+          previousZ = z - c.vz * elapsed;
+        const previousHeight =
+          nearest(this.track, previousX, previousZ).height + 0.085;
         this.marks.push({
+          x,
+          z,
           points: [
             [x - 0.1, c.y + 0.085, z],
             [x + 0.1, c.y + 0.085, z],
-            [
-              x + 0.1 - c.vx * dt * 3,
-              nearest(this.track, x - c.vx * dt * 3, z - c.vz * dt * 3).height +
-                0.085,
-              z - c.vz * dt * 3,
-            ],
-            [
-              x - 0.1 - c.vx * dt * 3,
-              nearest(this.track, x - c.vx * dt * 3, z - c.vz * dt * 3).height +
-                0.085,
-              z - c.vz * dt * 3,
-            ],
+            [previousX + 0.1, previousHeight, previousZ],
+            [previousX - 0.1, previousHeight, previousZ],
           ],
         });
       }
     }
-    if (this.marks.length > 650) this.marks.splice(0, 10);
+    if (this.marks.length > 300) this.marks.splice(0, this.marks.length - 300);
     const start = pts[0];
     for (const side of [-1, 1])
       this.box(
@@ -553,6 +672,7 @@ export class Renderer {
       z: car.z - Math.cos(orbit) * back,
       y: car.y + 2.35,
     };
+    this.prepareCamera();
     const ctx = this.ctx,
       gradient = ctx.createLinearGradient(0, 0, 0, this.h);
     gradient.addColorStop(0, "#101b18");
@@ -616,13 +736,25 @@ export class Renderer {
       ctx.strokeStyle = face.color;
       ctx.lineWidth = 0.65;
       ctx.stroke();
-      if (face.texture)
+      if (
+        face.texture &&
+        (!face.repeat || face.ps.some((point) => point.depth < 110))
+      )
         this.paintTexture(face.ps, face.texture, face.uv, face.repeat);
     }
     this.ctx = previous;
   }
   drawCarSprite(c) {
-    if (this.project(c.x, c.y + 1, c.z).depth < 3) return;
+    const center = this.project(c.x, c.y + 1, c.z);
+    if (center.depth < 3 || center.depth > this.viewDistance) return;
+    const margin = (5 * this.f) / center.depth;
+    if (
+      center.x < -margin ||
+      center.x > this.w + margin ||
+      center.y < -margin ||
+      center.y > this.h + margin
+    )
+      return;
     const worldFaces = this.faces;
     this.faces = [];
     this.drawCar(c);
@@ -901,7 +1033,7 @@ export class Renderer {
       }),
       uvMid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
     const tri = (a, b, c, u, v, w, level = 0) => {
-      if (repeat && level < 3) {
+      if (repeat && level < 2) {
         const depthRatio =
             Math.max(a.depth, b.depth, c.depth) /
             Math.min(a.depth, b.depth, c.depth),

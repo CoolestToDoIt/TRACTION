@@ -33,7 +33,9 @@ let skins = [],
   previewCar,
   orbit = -0.7,
   drag = null,
-  loadRequest = 0;
+  loadRequest = 0,
+  minimapCache = null,
+  lastHudUpdate = -Infinity;
 const formatTime = (t) =>
   `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t % 60).toFixed(2).padStart(5, "0")}`;
 function hidePanels() {
@@ -149,29 +151,43 @@ function finish() {
 }
 function minimap() {
   const canvas = $("minimap"),
-    ctx = canvas.getContext("2d"),
-    pts = session.track.points,
-    xs = pts.map((p) => p.x),
-    zs = pts.map((p) => p.z),
-    minX = Math.min(...xs),
-    maxX = Math.max(...xs),
-    minZ = Math.min(...zs),
-    maxZ = Math.max(...zs),
-    scale = Math.min(145 / (maxX - minX), 120 / (maxZ - minZ)),
-    convert = (p) => ({
-      x: 90 + (p.x - (minX + maxX) / 2) * scale,
-      y: 75 - (p.z - (minZ + maxZ) / 2) * scale,
+    ctx = canvas.getContext("2d");
+  if (minimapCache?.track !== session.track) {
+    const points = session.track.points;
+    let minX = Infinity,
+      maxX = -Infinity,
+      minZ = Infinity,
+      maxZ = -Infinity;
+    for (const point of points) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minZ = Math.min(minZ, point.z);
+      maxZ = Math.max(maxZ, point.z);
+    }
+    const scale = Math.min(145 / (maxX - minX), 120 / (maxZ - minZ));
+    const convert = (point) => ({
+      x: 90 + (point.x - (minX + maxX) / 2) * scale,
+      y: 75 - (point.z - (minZ + maxZ) / 2) * scale,
     });
+    const background = document.createElement("canvas");
+    background.width = 180;
+    background.height = 150;
+    const backgroundContext = background.getContext("2d");
+    backgroundContext.lineWidth = 7;
+    backgroundContext.strokeStyle = "#586655";
+    backgroundContext.beginPath();
+    points.forEach((point, index) => {
+      const projected = convert(point);
+      if (index) backgroundContext.lineTo(projected.x, projected.y);
+      else backgroundContext.moveTo(projected.x, projected.y);
+    });
+    backgroundContext.closePath();
+    backgroundContext.stroke();
+    minimapCache = { track: session.track, background, convert };
+  }
+  const { background, convert } = minimapCache;
   ctx.clearRect(0, 0, 180, 150);
-  ctx.lineWidth = 7;
-  ctx.strokeStyle = "#586655";
-  ctx.beginPath();
-  pts.forEach((p, i) => {
-    const q = convert(p);
-    i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
-  });
-  ctx.closePath();
-  ctx.stroke();
+  ctx.drawImage(background, 0, 0);
   for (const c of [...session.cars].reverse()) {
     const p = convert(c);
     ctx.beginPath();
@@ -272,7 +288,11 @@ function frame(ms) {
       false,
       state === "racing" && (keys.has("KeyC") || keys.has("lookback")),
     );
-    hud();
+    // UI updates need less bandwidth than the animation and fixed-step physics.
+    if (ms - lastHudUpdate >= 50) {
+      hud();
+      lastHudUpdate = ms;
+    }
   }
   requestAnimationFrame(frame);
 }

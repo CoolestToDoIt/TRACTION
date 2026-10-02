@@ -15,7 +15,19 @@ for (const id of circuits) {
   );
   const track = buildTrack(data);
   const structures = createScenery(track);
-  assert.ok(structures.length > 10, `${id} needs visible roadside scenery`);
+  assert.ok(structures.length >= 5, `${id} needs visible roadside scenery`);
+  assert.ok(
+    structures.length < track.length / 180,
+    "Scenery should remain sparse",
+  );
+  assert.ok(
+    new Set(structures.map((item) => item.height)).size >= 3,
+    "Vary structure dimensions",
+  );
+  assert.ok(
+    new Set(structures.map((item) => item.color)).size >= 2,
+    "Vary structure colors",
+  );
   assert.deepEqual(
     structures,
     createScenery(track),
