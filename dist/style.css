@@ -1,0 +1,1121 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #141918;
+  color: #f4f5ee;
+  font-family: Arial, Helvetica, sans-serif;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #dfff72;
+  outline-offset: 4px;
+}
+header {
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4vw;
+  border-bottom: 1px solid #323936;
+}
+.brand {
+  color: inherit;
+  text-decoration: none;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo {
+  background: #dfff72;
+  color: #161a16;
+  padding: 1px 7px;
+  transform: skew(-14deg);
+  font-size: 27px;
+}
+.version {
+  font-size: 12px;
+  color: #7f8b82;
+  margin-left: 8px;
+}
+.track-label,
+.quiet {
+  font-size: 12px;
+  letter-spacing: 1.4px;
+}
+.track-label span {
+  color: #829087;
+}
+.quiet {
+  background: transparent;
+  color: inherit;
+  border: 0;
+  padding: 12px;
+}
+.quiet span {
+  border: 1px solid #556158;
+  padding: 3px 7px;
+  margin-left: 10px;
+}
+main {
+  padding: 24px 3vw 0;
+}
+.game {
+  position: relative;
+  height: calc(100dvh - 170px);
+  min-height: 460px;
+  max-height: 960px;
+  overflow: hidden;
+  background: #c2d4c5;
+  border: 1px solid #424a40;
+  border-radius: 3px;
+}
+#view {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 100px #191f1b22;
+}
+.hud {
+  position: absolute;
+  top: 27px;
+  left: 32px;
+  right: 24px;
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+  color: white;
+  text-shadow: 0 1px 6px #0008;
+}
+.stat small,
+.timer small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-bottom: 7px;
+}
+.stat strong {
+  font-size: 35px;
+  line-height: 1;
+}
+.stat strong span {
+  font-size: 16px;
+  font-weight: 400;
+  color: #f2f0dfbb;
+}
+.timer {
+  margin-left: auto;
+  text-align: right;
+}
+.timer strong {
+  font-size: 23px;
+  font-variant-numeric: tabular-nums;
+}
+.bottom-hud {
+  position: absolute;
+  bottom: 24px;
+  left: 26px;
+  right: 32px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.mini {
+  width: 180px;
+  background: #17251aca;
+  padding: 5px 8px;
+  border: 1px solid #ffffff22;
+  border-radius: 3px;
+}
+.mini canvas {
+  width: 160px;
+  height: 130px;
+}
+.mini span {
+  display: block;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.drift {
+  text-align: center;
+  margin-bottom: 12px;
+  min-width: 220px;
+}
+.grip {
+  display: inline-block;
+  padding: 9px 15px;
+  background: #17251ade;
+  border: 1px solid #dfff72;
+  color: #dfff72;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+.grip.off {
+  color: #ffb786;
+  border-color: #ffb786;
+}
+.slip-track {
+  height: 3px;
+  background: #ffffff44;
+  margin: 12px 0 8px;
+  position: relative;
+}
+.slip-track i {
+  position: absolute;
+  height: 7px;
+  width: 7px;
+  background: #dfff72;
+  left: 50%;
+  top: -2px;
+}
+.drift small {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 4px #000;
+}
+.speed {
+  width: 145px;
+  text-align: right;
+  text-shadow: 0 2px 8px #0005;
+}
+.speed strong {
+  font-size: 70px;
+  font-weight: 800;
+  letter-spacing: -4px;
+  line-height: 1;
+}
+.speed > span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-top: 5px;
+}
+.speed-track {
+  height: 4px;
+  background: #fff5;
+  margin-top: 12px;
+}
+.speed-track i {
+  height: 4px;
+  background: #dfff72;
+  display: block;
+  width: 0;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #14251af7 0%,
+    #15261ce8 33%,
+    #14291c64 62%,
+    #101b1510
+  );
+  display: flex;
+  align-items: center;
+  padding: 5%;
+}
+.menu-content {
+  position: relative;
+  z-index: 1;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  color: #c5d2bb;
+}
+h1 {
+  font-size: clamp(44px, 6.4vw, 94px);
+  letter-spacing: -5px;
+  line-height: 0.96;
+  margin: 22px 0;
+  font-weight: 900;
+}
+h1 em {
+  color: #dfff72;
+  font-style: italic;
+}
+.menu-content > p {
+  font-size: 16px;
+  color: #cbd6c6;
+}
+.race-info {
+  display: flex;
+  gap: 24px;
+  margin: 26px 0;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #a7b6a5;
+}
+.skin-picker {
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+#skins {
+  display: flex;
+  gap: 9px;
+}
+#skins button {
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  outline-offset: 4px;
+}
+#skins button.selected {
+  border-color: white;
+  box-shadow: 0 0 0 2px #fff5;
+}
+.primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  border: 0;
+  background: #dfff72;
+  color: #192217;
+  padding: 19px 24px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  min-width: 285px;
+}
+.primary:hover {
+  background: #eeffa8;
+}
+.menu-note {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #9cad96;
+  margin-top: 19px;
+}
+.track-stamp {
+  position: absolute;
+  right: 6%;
+  bottom: 27%;
+  text-align: right;
+  opacity: 0.8;
+}
+.track-stamp > span {
+  font-size: 130px;
+  font-weight: 900;
+  font-style: italic;
+  color: #ffffffbb;
+  letter-spacing: -15px;
+}
+.track-stamp small {
+  display: block;
+  line-height: 1.8;
+  letter-spacing: 2px;
+  font-size: 10px;
+}
+.modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0e1a15b8;
+  backdrop-filter: blur(9px);
+  z-index: 5;
+  padding: 20px;
+}
+.panel {
+  width: 450px;
+  background: #1b2721;
+  padding: 36px;
+  position: relative;
+  border: 1px solid #65715e;
+}
+.panel h2 {
+  font-size: 35px;
+  letter-spacing: -1px;
+  margin: 20px 0;
+}
+.panel p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #c4cec0;
+}
+.panel small {
+  font-size: 12px;
+  color: #aab7a4;
+}
+.panel .primary,
+.secondary {
+  width: 100%;
+  margin-top: 12px;
+}
+.secondary {
+  border: 1px solid #66725e;
+  background: transparent;
+  color: #e0e8d8;
+  padding: 15px;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.close {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  color: #eee;
+  background: none;
+  border: 0;
+  font-size: 29px;
+}
+dl {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  font-size: 14px;
+  gap: 14px;
+}
+dt {
+  color: #dfff72;
+}
+dd {
+  margin: 0;
+  color: #d2dacb;
+}
+.hidden {
+  display: none !important;
+}
+footer {
+  height: 57px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #8d9a90;
+}
+footer b {
+  color: #d5e0d0;
+  margin-right: 7px;
+}
+.build {
+  color: #637368;
+}
+#countdown {
+  position: absolute;
+  top: 35%;
+  width: 100%;
+  text-align: center;
+  font-size: 100px;
+  font-weight: 900;
+  color: #dfff72;
+  text-shadow: 0 2px 15px #0007;
+  pointer-events: none;
+}
+.touch {
+  display: none;
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 3;
+}
+.touch button {
+  background: #15241caa;
+  border: 1px solid #ffffff55;
+  color: #fff;
+  border-radius: 5px;
+  min-height: 54px;
+  min-width: 50px;
+  padding: 12px;
+  touch-action: none;
+  user-select: none;
+}
+.touch div {
+  display: flex;
+  gap: 6px;
+}
+#standings {
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+.finish-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px;
+  border-bottom: 1px solid #ffffff18;
+}
+.finish-row.you {
+  color: #dfff72;
+}
+#error {
+  position: absolute;
+  inset: 0;
+  background: #19251e;
+  padding: 40px;
+  z-index: 10;
+}
+@media (max-width: 700px) {
+  header {
+    height: 64px;
+    padding: 0 20px;
+  }
+  .brand {
+    font-size: 18px;
+  }
+  .track-label {
+    display: none;
+  }
+  main {
+    padding: 12px 12px 0;
+  }
+  .game {
+    height: calc(100dvh - 120px);
+    min-height: 450px;
+  }
+  .hud {
+    left: 17px;
+    top: 17px;
+    right: 12px;
+    gap: 20px;
+  }
+  .timer strong {
+    font-size: 17px;
+  }
+  .hud #pause {
+    font-size: 10px;
+    padding: 5px;
+  }
+  .stat strong {
+    font-size: 26px;
+  }
+  .timer small,
+  .stat small {
+    font-size: 9px;
+  }
+  .bottom-hud {
+    left: 12px;
+    right: 16px;
+    bottom: 90px;
+  }
+  .mini {
+    width: 100px;
+  }
+  .mini canvas {
+    width: 82px;
+    height: 72px;
+  }
+  .mini span {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+  .drift {
+    min-width: 130px;
+    max-width: 140px;
+  }
+  .drift small {
+    font-size: 8px;
+  }
+  .grip {
+    font-size: 9px;
+    padding: 8px;
+  }
+  .speed {
+    width: 85px;
+  }
+  .speed strong {
+    font-size: 48px;
+  }
+  .overlay {
+    padding: 24px;
+  }
+  .menu-content h1 {
+    font-size: 55px;
+    letter-spacing: -3px;
+  }
+  .menu-content > p {
+    font-size: 14px;
+    max-width: 230px;
+    line-height: 1.6;
+  }
+  .track-stamp {
+    display: none;
+  }
+  .menu-note {
+    font-size: 8px;
+    max-width: 230px;
+    line-height: 1.7;
+  }
+  .touch {
+    display: flex;
+  }
+  footer {
+    height: 42px;
+    font-size: 8px;
+  }
+  footer > span:nth-child(2) {
+    display: none;
+  }
+  footer .build {
+    font-size: 7px;
+  }
+  .panel {
+    padding: 25px;
+  }
+  h2 {
+    font-size: 29px !important;
+  }
+  .primary {
+    min-width: 0;
+    padding: 17px;
+    font-size: 11px;
+  }
+}
+.race-options {
+  border: 0;
+  padding: 0;
+  margin: 17px 0 20px;
+  max-width: 490px;
+}
+.race-options legend {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #bbc9b4;
+  margin-bottom: 9px;
+}
+.option-row {
+  display: flex;
+  gap: 8px;
+}
+.option-row button {
+  flex: 1;
+  text-align: left;
+  background: #18291de6;
+  border: 1px solid #57644e;
+  color: #e4ecdd;
+  padding: 11px 12px;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.option-row button small {
+  display: block;
+  font-size: 10px;
+  font-weight: normal;
+  color: #a4b59d;
+  margin-top: 6px;
+}
+.option-row button.selected {
+  border-color: #dfff72;
+  background: #dfff7216;
+  color: #dfff72;
+}
+.menu-content h1 {
+  font-size: clamp(40px, 5.1vw, 72px);
+  margin: 15px 0;
+}
+.menu-content > p {
+  margin: 10px 0;
+}
+.race-info {
+  margin: 18px 0;
+}
+.overlay {
+  overflow: auto;
+}
+.menu-content {
+  padding: 10px 0;
+}
+.skin-picker {
+  margin-bottom: 17px;
+}
+.game[data-state="menu"] .touch,
+.game[data-state="paused"] .touch,
+.game[data-state="paused-countdown"] .touch,
+.game[data-state="finished"] .touch {
+  display: none;
+}
+.game.night .overlay {
+  background: linear-gradient(
+    90deg,
+    #11152bf7 0%,
+    #161a34e8 33%,
+    #12192b64 62%,
+    #101b1510
+  );
+}
+.game.night .mini {
+  background: #14182cdd;
+}
+.game.night .option-row button {
+  background: #20243be6;
+}
+.game.night .option-row button.selected {
+  background: #dfff7216;
+}
+.game.night .mini canvas {
+  filter: brightness(1.25);
+}
+@media (max-width: 700px) {
+  .overlay {
+    align-items: flex-start;
+    padding: 20px;
+  }
+  .menu-content h1 {
+    font-size: 40px;
+    margin: 10px 0;
+    letter-spacing: -2px;
+  }
+  .menu-content > p {
+    max-width: none;
+    font-size: 12px;
+  }
+  .race-options {
+    margin: 12px 0;
+  }
+  .option-row button {
+    padding: 9px 8px;
+    font-size: 11px;
+  }
+  .option-row button small {
+    font-size: 9px;
+  }
+  .race-info {
+    margin: 12px 0;
+    gap: 17px;
+  }
+  .skin-picker {
+    margin: 14px 0;
+  }
+  .menu-note {
+    font-size: 8px;
+    margin-top: 12px;
+  }
+  .menu-content {
+    width: 100%;
+    padding-bottom: 8px;
+  }
+  .menu-content .primary {
+    width: 100%;
+  }
+  .race-options legend {
+    font-size: 9px;
+  }
+  .game.night .overlay {
+    background: #12162bd9;
+  }
+}
+@media (max-height: 740px) and (min-width: 701px) {
+  .menu-content h1 {
+    font-size: 48px;
+  }
+  .overlay {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+  .race-options {
+    margin: 12px 0;
+  }
+  .menu-content {
+    padding: 0;
+  }
+  .race-info {
+    margin: 13px 0;
+  }
+}
+
+.charge-track {
+  height: 6px;
+  background: #19251dd9;
+  border: 1px solid #ffffff55;
+  margin: 10px 0 5px;
+}
+.charge-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #efa363;
+}
+.grip.boosting {
+  background: #dfff72;
+  color: #172217;
+  border-color: white;
+  box-shadow: 0 0 20px #dfff7277;
+}
+#charge-label {
+  display: block;
+  font-size: 10px;
+  color: #eff7d9;
+}
+.drift .slip-track {
+  margin-top: 8px;
+}
+.drift {
+  min-width: 240px;
+}
+@media (max-width: 700px) {
+  .drift {
+    min-width: 130px;
+  }
+  #charge-label {
+    font-size: 8px;
+  }
+  .charge-track {
+    margin-top: 7px;
+  }
+}
+.game:is(
+    [data-state="home"],
+    [data-state="garage"],
+    [data-state="maps"],
+    [data-state="loading"]
+  )
+  :is(.hud, .bottom-hud, .touch) {
+  display: none;
+}
+.home-screen .menu-content {
+  max-width: 440px;
+}
+.home-screen .secondary {
+  max-width: 285px;
+}
+.home-mark {
+  position: absolute;
+  right: 9%;
+  top: 24%;
+  font-size: clamp(120px, 19vw, 280px);
+  font-weight: 900;
+  letter-spacing: -25px;
+  font-style: italic;
+  color: #dfff7225;
+  pointer-events: none;
+}
+.garage-screen {
+  background: #122119f5;
+  padding: 35px;
+  gap: 24px;
+  align-items: center;
+}
+.garage-controls {
+  width: 280px;
+  flex-shrink: 0;
+}
+.garage-controls h2,
+.maps-content h2 {
+  font-size: 38px;
+  letter-spacing: -1.5px;
+  margin: 16px 0;
+}
+.garage-controls > p {
+  color: #c8d3c2;
+  font-size: 15px;
+}
+.garage-controls .skin-picker {
+  margin: 25px 0;
+}
+.garage-hint {
+  font-size: 12px !important;
+  color: #95ac98 !important;
+}
+.rotate-controls {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0 30px;
+}
+.rotate-controls button {
+  background: #21352a;
+  border: 1px solid #5b715f;
+  color: #e2eeda;
+  font-size: 25px;
+  padding: 5px 18px;
+}
+.garage-controls .primary {
+  min-width: 0;
+  width: 100%;
+}
+.garage-display {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  min-height: 280px;
+  border: 1px solid #48614e;
+  background: #13271a;
+}
+.garage-display canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.garage-display canvas:active {
+  cursor: grabbing;
+}
+.garage-car-label {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #b4c9b9;
+  pointer-events: none;
+}
+.maps-screen {
+  background: #14231af2;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 35px;
+}
+.maps-content {
+  width: 100%;
+  max-width: 1050px;
+}
+.track-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 25px 0;
+}
+.track-cards button {
+  background: #1b3023;
+  border: 1px solid #4c6552;
+  color: #eff6e7;
+  text-align: left;
+  padding: 24px;
+  min-height: 160px;
+}
+.track-cards button.selected {
+  border-color: #dfff72;
+  background: #2e4224;
+  box-shadow: inset 0 0 0 1px #dfff72;
+}
+.track-number {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #a4b49c;
+  margin-bottom: 18px;
+}
+.track-cards strong {
+  display: block;
+  font-size: 21px;
+  letter-spacing: -0.5px;
+}
+.track-cards small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #afc2a9;
+  margin-top: 12px;
+}
+.map-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+}
+.map-actions .secondary {
+  width: auto;
+  margin: 0;
+  min-width: 190px;
+}
+.map-actions .primary {
+  margin: 0;
+  min-width: 300px;
+}
+.maps-content .race-options {
+  max-width: 560px;
+}
+.game[data-state="loading"] #loading-panel {
+  background: #14231af7;
+}
+.primary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+@media (max-width: 700px) {
+  .home-mark {
+    display: none;
+  }
+  .home-screen {
+    align-items: center;
+  }
+  .home-screen .menu-content {
+    padding: 0 10px;
+  }
+  .home-screen h1 {
+    font-size: 58px;
+  }
+  .home-screen .secondary {
+    max-width: none;
+  }
+  .garage-screen {
+    flex-direction: column;
+    padding: 18px;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .garage-controls {
+    width: 100%;
+    order: 2;
+  }
+  .garage-controls h2 {
+    font-size: 27px;
+    margin: 8px 0;
+  }
+  .garage-controls .skin-picker {
+    margin: 15px 0;
+  }
+  .garage-display {
+    order: 1;
+    flex: none;
+    height: 245px;
+    min-height: 245px;
+    width: 100%;
+  }
+  .garage-controls > p {
+    margin: 8px 0;
+  }
+  .rotate-controls {
+    margin: 10px 0;
+  }
+  .garage-car-label {
+    font-size: 8px;
+    left: 12px;
+    bottom: 12px;
+  }
+  .garage-controls .secondary {
+    padding: 12px;
+  }
+  .maps-screen {
+    padding: 22px;
+  }
+  .maps-content h2 {
+    font-size: 29px;
+    margin: 12px 0;
+  }
+  .track-cards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 15px 0;
+  }
+  .track-cards button {
+    min-height: 90px;
+    padding: 14px;
+  }
+  .track-number {
+    float: right;
+    margin: 0;
+  }
+  .track-cards strong {
+    font-size: 18px;
+  }
+  .track-cards small {
+    font-size: 12px;
+    margin-top: 5px;
+  }
+  .map-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+    margin-top: 18px;
+  }
+  .map-actions .primary,
+  .map-actions .secondary {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.track-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.track-cards button {
+  padding: 20px;
+}
+.track-cards strong {
+  font-size: 19px;
+}
+@media (min-width: 701px) and (max-width: 1000px) {
+  .track-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .track-cards button {
+    min-height: 130px;
+  }
+}
+@media (max-width: 700px) {
+  .track-cards {
+    grid-template-columns: 1fr;
+  }
+  .track-cards button {
+    padding: 14px;
+    min-height: 90px;
+  }
+}
+#car-status,
+#map-status {
+  display: block;
+  max-width: 560px;
+  color: #cfdfa8;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+.hud [data-control="lookback"] {
+  margin-left: auto;
+  touch-action: none;
+  background: #14231a80;
+  border: 1px solid #c9dfac66;
+}
+.touch [data-control="lookback"] {
+  font-size: 9px;
+  touch-action: none;
+}
+.track-cards {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (max-width: 700px) {
+  .track-cards {
+    grid-template-columns: 1fr;
+  }
+  .hud {
+    gap: 12px;
+    left: 14px;
+    right: 10px;
+  }
+  .hud [data-control="lookback"] {
+    display: none;
+  }
+  .touch {
+    gap: 5px;
+  }
+  .touch button {
+    padding: 12px 8px;
+  }
+}

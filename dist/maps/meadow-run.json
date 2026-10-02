@@ -1,0 +1,86 @@
+{
+  "format": "traction.track",
+  "version": 1,
+  "id": "meadow-run",
+  "name": "Meadow Run",
+  "laps": 3,
+  "roadWidth": 38,
+  "points": [
+    [
+      0,
+      0,
+      6
+    ],
+    [
+      0,
+      220,
+      9
+    ],
+    [
+      -100,
+      400,
+      20
+    ],
+    [
+      -310,
+      470,
+      31
+    ],
+    [
+      -535,
+      390,
+      24
+    ],
+    [
+      -650,
+      205,
+      8
+    ],
+    [
+      -605,
+      0,
+      4
+    ],
+    [
+      -695,
+      -190,
+      14
+    ],
+    [
+      -535,
+      -385,
+      28
+    ],
+    [
+      -295,
+      -420,
+      34
+    ],
+    [
+      -125,
+      -315,
+      19
+    ],
+    [
+      -95,
+      -140,
+      7
+    ]
+  ],
+  "terrainWidth": 100,
+  "environment": {
+    "type": "grassland",
+    "sky": "#9ccce2",
+    "horizon": "#d6e9dc",
+    "ground": "#55904d",
+    "road": "#414b46",
+    "shoulder": "#b6bc8a",
+    "curb": "#649360",
+    "lane": "#edf2d0",
+    "terrainNear": "#629c54",
+    "terrainFar": "#4d8648",
+    "mountainLight": "#759d6c",
+    "mountainDark": "#5d8259",
+    "background": "../backgrounds/grassland.png"
+  }
+}

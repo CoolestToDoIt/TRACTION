@@ -1,0 +1,30 @@
+{
+  "format": "traction.maps",
+  "version": 1,
+  "tracks": [
+    {
+      "id": "copper-canyon",
+      "name": "Copper Canyon",
+      "url": "/maps/copper-canyon.json",
+      "description": "Climbs, crests & sweeping curves"
+    },
+    {
+      "id": "midnight-metro",
+      "name": "Midnight Metro",
+      "url": "/maps/midnight-metro.json",
+      "description": "Night streets & tight city corners"
+    },
+    {
+      "id": "sunstone-pass",
+      "name": "Sunstone Pass",
+      "url": "/maps/sunstone-pass.json",
+      "description": "Open desert, mountain climbs & 180\u00b0 hairpins"
+    },
+    {
+      "id": "meadow-run",
+      "name": "Meadow Run",
+      "url": "/maps/meadow-run.json",
+      "description": "Double-wide roads through rolling grasslands"
+    }
+  ]
+}

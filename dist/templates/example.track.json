@@ -1,0 +1,11 @@
+{
+  "format": "traction.track",
+  "version": 1,
+  "id": "my-circuit",
+  "name": "My Circuit",
+  "description": "A rolling custom loop",
+  "laps": 3,
+  "roadWidth": 19,
+  "points": [[0,0,0], [0,300,15], [-100,500,35], [-400,500,20], [-500,300,5], [-400,0,0]],
+  "environment": {"type": "grassland", "sky": "#a7c6bd", "ground": "#709c58", "road": "#39433f"}
+}

@@ -1,0 +1,18 @@
+{
+  "format": "traction.cars",
+  "version": 1,
+  "cars": [
+    {
+      "url": "acid.car.json"
+    },
+    {
+      "url": "ember.car.json"
+    },
+    {
+      "url": "glacier.car.json"
+    },
+    {
+      "url": "orchid.car.json"
+    }
+  ]
+}

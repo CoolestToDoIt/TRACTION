@@ -1,0 +1,14 @@
+{
+  "id": "acid",
+  "name": "Acid",
+  "body": "#dfff72",
+  "accent": "#242f25",
+  "texture": "acid.png",
+  "format": "traction.car",
+  "version": 1,
+  "dimensions": {
+    "width": 1.78,
+    "length": 4.23,
+    "height": 1.28
+  }
+}

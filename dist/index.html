@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#141918" />
+    <meta
+      name="description"
+      content="A lightweight arcade racer. Toggle traction, catch the slide, and race five CPU opponents through Copper Canyon, Midnight Metro, Sunstone Pass, and Meadow Run."
+    />
+    <title>TRACTION · Arcade Racing</title>
+    <link rel="icon" href="./favicon.svg" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./" aria-label="Traction home"
+        ><span class="logo">Ⅱ</span> TRACTION<span class="version"
+          >/ 01</span
+        ></a
+      >
+      <div class="track-label" id="track-label">
+        COPPER CANYON <span>· CIRCUIT</span>
+      </div>
+      <button id="help" class="quiet">CONTROLS <span>?</span></button>
+    </header>
+    <main>
+      <div class="game" id="game">
+        <canvas id="view" aria-label="3D racing game"></canvas>
+        <div class="vignette"></div>
+        <div class="hud">
+          <div class="stat">
+            <small>POSITION</small
+            ><strong id="position">1<span> / 6</span></strong>
+          </div>
+          <div class="stat">
+            <small>LAP</small><strong id="lap">1<span> / 3</span></strong>
+          </div>
+          <div class="timer">
+            <small>RACE TIME</small><strong id="time">00:00.00</strong>
+          </div>
+          <button
+            data-control="lookback"
+            class="quiet"
+            aria-label="Hold to look back"
+          >
+            LOOK BACK · C</button
+          ><button id="pause" class="quiet">PAUSE Ⅱ</button>
+        </div>
+        <div id="countdown"></div>
+        <div class="bottom-hud">
+          <div class="mini">
+            <canvas
+              id="minimap"
+              width="180"
+              height="150"
+              aria-label="Track minimap"
+            ></canvas
+            ><span id="map-label">COPPER CANYON</span>
+          </div>
+          <div class="drift">
+            <span id="grip" class="grip">TRACTION ON</span>
+            <div class="charge-track"><i id="chargebar"></i></div>
+            <small id="charge-label">0% DRIFT CHARGE</small>
+            <div class="slip-track"><i id="slip"></i></div>
+            <small id="tip">SPACE TO RELEASE TRACTION</small>
+          </div>
+          <div class="speed">
+            <strong id="speed">0</strong><span>KM/H</span>
+            <div class="speed-track"><i id="speedbar"></i></div>
+          </div>
+        </div>
+        <section class="overlay home-screen" id="menu" aria-label="Main menu">
+          <div class="menu-content">
+            <span class="eyebrow">ARCADE RACING / VOL. 02</span>
+            <h1>BREAK<br /><em>TRACTION.</em></h1>
+            <p>Drift the corner. Catch the slide. Boost the exit.</p>
+            <div class="race-info">
+              <span>04 CIRCUITS</span><span>05 RIVALS</span><span>03 LAPS</span>
+            </div>
+            <button id="play" class="primary" disabled>
+              PLAY <span>▶</span></button
+            ><button id="home-garage" class="secondary" disabled>GARAGE</button
+            ><small class="menu-note"
+              >WASD / ARROWS TO DRIVE · SPACE TO TOGGLE TRACTION</small
+            >
+          </div>
+          <span class="home-mark">TR</span>
+        </section>
+        <section
+          class="overlay hidden garage-screen"
+          id="garage-screen"
+          aria-label="Garage"
+        >
+          <div class="garage-controls">
+            <span class="eyebrow">01 / GARAGE</span>
+            <h2>Your ride.</h2>
+            <p id="skin-name">Acid / Sedan</p>
+            <div class="skin-picker">
+              <span>LIVERY</span>
+              <div id="skins"></div>
+            </div>
+            <p class="garage-hint">Drag the car to look around.</p>
+            <div class="rotate-controls">
+              <button id="rotate-left" aria-label="Rotate car left">↶</button
+              ><button id="rotate-right" aria-label="Rotate car right">
+                ↷
+              </button>
+            </div>
+            <button id="import-car" class="secondary">IMPORT CAR FILE</button
+            ><input
+              id="car-file"
+              type="file"
+              accept=".json,.png,.jpg,.jpeg,.webp"
+              multiple
+              hidden
+            /><small id="car-status" role="status"></small
+            ><button id="choose-map" class="primary">CHOOSE CIRCUIT</button
+            ><button id="garage-home" class="secondary">MAIN MENU</button>
+          </div>
+          <div class="garage-display">
+            <canvas
+              id="garage-view"
+              aria-label="Rotatable preview of your selected sedan"
+            ></canvas
+            ><span class="garage-car-label">SEDAN / REAR WHEEL DRIVE</span>
+          </div>
+        </section>
+        <section
+          class="overlay hidden maps-screen"
+          id="maps-screen"
+          aria-label="Circuit selection"
+        >
+          <div class="maps-content">
+            <span class="eyebrow">02 / CIRCUIT SELECT</span>
+            <h2>Pick your playground.</h2>
+            <div id="tracks" class="track-cards"></div>
+            <fieldset class="race-options">
+              <legend>CPU DIFFICULTY</legend>
+              <div id="difficulties" class="option-row"></div>
+            </fieldset>
+            <button id="import-map" class="secondary">IMPORT MAP FILE</button
+            ><input
+              id="map-file"
+              type="file"
+              accept=".json,.png,.jpg,.jpeg,.webp"
+              multiple
+              hidden
+            /><small id="map-status" role="status"></small>
+            <div class="map-actions">
+              <button id="start" class="primary" disabled>
+                RACE COPPER CANYON <span>▶</span></button
+              ><button id="maps-garage" class="secondary">
+                BACK TO GARAGE
+              </button>
+            </div>
+          </div>
+        </section>
+        <section
+          class="modal hidden"
+          id="loading-panel"
+          aria-label="Loading circuit"
+        >
+          <div class="panel">
+            <span class="eyebrow">HEADING TO THE GRID</span>
+            <h2 id="loading-name">Loading circuit…</h2>
+            <p id="loading-status" role="status">Loading road and scenery.</p>
+            <button id="loading-back" class="secondary hidden">
+              BACK TO CIRCUITS
+            </button>
+          </div>
+        </section>
+        <div class="modal hidden" id="help-panel">
+          <div class="panel">
+            <button id="close-help" class="close" aria-label="Close controls">
+              ×</button
+            ><span class="eyebrow">DRIVER’S BRIEFING</span>
+            <h2>Catch the slide.</h2>
+            <dl>
+              <dt>W / ↑</dt>
+              <dd>Accelerate</dd>
+              <dt>S / ↓</dt>
+              <dd>Brake / reverse</dd>
+              <dt>A D / ← →</dt>
+              <dd>Steer left / right</dd>
+              <dt>SPACE</dt>
+              <dd>Toggle traction control</dd>
+              <dt>HOLD C</dt>
+              <dd>Look behind your car</dd>
+              <dt>ESC / P</dt>
+              <dd>Pause / resume</dd>
+              <dt>R</dt>
+              <dd>Reset car to track</dd>
+            </dl>
+            <p>
+              Enter a corner, tap Space, then steer into it. Once the rear steps
+              out, steer the opposite way to balance the drift. Hold a
+              controlled drift through a corner to fill the charge meter, then
+              tap Space again to regain grip and trigger an exit boost. Staying
+              on the road and balancing the slide earns charge. Spinning out or
+              leaving the road loses it.
+            </p>
+            <small>Touch controls appear on smaller screens.</small>
+          </div>
+        </div>
+        <div class="modal hidden" id="pause-panel">
+          <div class="panel">
+            <span class="eyebrow">TAKE A BREATHER</span>
+            <h2>Race paused.</h2>
+            <button id="resume" class="primary">RESUME RACE</button
+            ><button id="restart" class="secondary">RESTART RACE</button
+            ><button id="garage" class="secondary">BACK TO GARAGE</button>
+          </div>
+        </div>
+        <div class="modal hidden" id="results">
+          <div class="panel">
+            <span class="eyebrow">CHECKERED FLAG</span>
+            <h2 id="result-title">Race complete.</h2>
+            <p id="result-time"></p>
+            <div id="standings"></div>
+            <button id="again" class="primary">RACE AGAIN</button
+            ><button id="result-garage" class="secondary">
+              BACK TO GARAGE
+            </button>
+          </div>
+        </div>
+        <div class="touch">
+          <div>
+            <button data-control="left" aria-label="Steer left">◀</button
+            ><button data-control="right" aria-label="Steer right">▶</button>
+          </div>
+          <button data-control="lookback" aria-label="Hold to look back">
+            LOOK BACK</button
+          ><button id="touch-drift">TRACTION</button>
+          <div>
+            <button data-control="brake" aria-label="Brake">BRAKE</button
+            ><button data-control="throttle" aria-label="Accelerate">
+              GAS
+            </button>
+          </div>
+        </div>
+        <div id="error" class="hidden"></div>
+      </div>
+      <footer>
+        <span><b>SPACE</b> RELEASE / REGAIN GRIP</span
+        ><span><b>← →</b> COUNTER-STEER TO HOLD A DRIFT</span
+        ><span class="build">SINGLE PLAYER · PROTOTYPE 0.3</span>
+      </footer>
+    </main>
+    <script type="module" src="./js/game.js"></script>
+  </body>
+</html>

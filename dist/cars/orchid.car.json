@@ -1,0 +1,14 @@
+{
+  "id": "orchid",
+  "name": "Orchid",
+  "body": "#b6a6ee",
+  "accent": "#f1eafa",
+  "texture": "orchid.png",
+  "format": "traction.car",
+  "version": 1,
+  "dimensions": {
+    "width": 1.78,
+    "length": 4.23,
+    "height": 1.28
+  }
+}

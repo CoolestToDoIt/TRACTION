@@ -1,0 +1,14 @@
+{
+  "id": "ember",
+  "name": "Ember",
+  "body": "#fc7951",
+  "accent": "#fff0d4",
+  "texture": "ember.png",
+  "format": "traction.car",
+  "version": 1,
+  "dimensions": {
+    "width": 1.78,
+    "length": 4.23,
+    "height": 1.28
+  }
+}

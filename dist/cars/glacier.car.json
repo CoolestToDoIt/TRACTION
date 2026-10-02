@@ -1,0 +1,14 @@
+{
+  "id": "glacier",
+  "name": "Glacier",
+  "body": "#8edcdd",
+  "accent": "#233e40",
+  "texture": "glacier.png",
+  "format": "traction.car",
+  "version": 1,
+  "dimensions": {
+    "width": 1.78,
+    "length": 4.23,
+    "height": 1.28
+  }
+}

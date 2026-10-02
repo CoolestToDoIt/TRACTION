@@ -1,0 +1,8 @@
+{
+  "name": "traction-circuit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/simulation.mjs && node tests/circuits.mjs && node tests/drifting.mjs && node tests/mountain.mjs && node tests/grasslands.mjs && node tests/content.mjs && node tests/scenery.mjs"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "format": "traction.car",
+  "version": 1,
+  "id": "my-sedan",
+  "name": "My Sedan",
+  "body": "#67cfa5",
+  "accent": "#213c31",
+  "dimensions": {"width": 1.78, "length": 4.23, "height": 1.28}
+}
